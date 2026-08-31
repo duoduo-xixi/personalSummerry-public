@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <radialGradient id="g2" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#2a1b55"/>
+      <stop offset="1" stop-color="#0b0718"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#g2)"/>
+  <text x="640" y="330" font-size="140" text-anchor="middle">🎮</text>
+  <text x="640" y="430" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="46" text-anchor="middle" fill="#e7edff">像素填图小程序</text>
+  <text x="640" y="486" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="22" text-anchor="middle" fill="#8ea0c8">点击播放作品视频</text>
+</svg>
