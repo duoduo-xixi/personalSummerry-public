@@ -75,12 +75,16 @@ vue-app/
    ├─ style.css            # 全局样式（复用静态版）
    ├─ data/site.js         # 站点数据（名字/角色/技能/经历/作品/视频/联系方式）
    ├─ composables/
-   │  └─ useFullpage.js    # 整页翻页逻辑（滚轮/触摸/键盘/哈希）
+   │  ├─ useFullpage.js    # 整页翻页逻辑（滚轮/触摸/键盘/哈希）
+   │  └─ useEditor.js      # 编辑模式 + 简历生成
    └─ components/
       ├─ GalaxyBackground.vue   # THREE.js 银河
       ├─ CursorGlow.vue         # 光标光晕
       ├─ Loader.vue             # 加载动画
       ├─ AppNav.vue             # 顶部导航（含移动端菜单）
+      ├─ EditorButton.vue       # 右上角「编辑」浮动按钮
+      ├─ EditBar.vue            # 底部提交栏（生成简历 / 重置）
+      ├─ ResumeOverlay.vue      # 简历预览/下载/打印弹窗
       ├─ HeroSection.vue        # 首页
       ├─ SkillsSection.vue      # 技能矩阵
       ├─ TimelineSection.vue    # 经历（航行轨迹）
@@ -112,6 +116,65 @@ npm run preview  # 本地预览打包产物
 
 ---
 
+## 🌐 部署为静态站点（无需数据库）
+
+本项目是**纯静态前端**（Vue 打包后只有 HTML / CSS / JS），没有任何后端接口、也不存储用户数据，所以**不需要数据库或服务器**。你只需把打包产物 `dist/` 发布到任意静态托管平台即可。
+
+### 发布前：把内容固化进源码
+
+编辑模式里的修改只在**当前浏览器**里生效，刷新会回到默认模板；要让别人看到你定好的内容，请把最终内容**写入 `vue-app/src/data/site.js`**（或对照编辑模式里的值手动填进去），再重新构建。
+
+```bash
+cd vue-app
+npm install        # 首次
+npm run build      # 生成 dist/
+```
+
+> 若你的 PowerShell 禁止执行 `npm.ps1`，请改用 `npm.cmd`。
+> 构建产物 `dist/`、依赖 `node_modules/`、npm 缓存 `.npm-cache/` 都已加入 `.gitignore`，请勿提交。
+
+### 方式一：GitHub Pages（推荐，仓库通常已公开）
+
+1. 在仓库根目录添加 GitHub Actions 工作流 `.github/workflows/deploy.yml`，在 `main` 分支 push 时自动构建并发布 Pages（模板见下）；
+2. 或手动把 `vue-app/dist/` 的内容推到 `gh-pages` 分支；
+3. 在仓库 **Settings → Pages** 中把 Source 设为 **GitHub Actions**（或 `gh-pages` 分支）；
+4. 访问：`https://<用户名>.github.io/<仓库名>/`。
+
+> 若部署在子路径，记得把 `vue-app/vite.config.js` 里的 `base` 设为 `/<仓库名>/`。
+
+**GitHub Actions 模板：**
+
+```yaml
+name: Deploy to GitHub Pages
+on: { push: { branches: [main] } }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions: { pages: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+        working-directory: vue-app
+      - run: npm run build
+        working-directory: vue-app
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: vue-app/dist }
+      - uses: actions/deploy-pages@v4
+```
+
+### 方式二：Netlify / Vercel（免配置）
+
+连接仓库后按如下设置即可：
+
+- **Build command**：`npm run build`（在 `vue-app` 目录）
+- **Publish directory**：`dist`
+
+流程其实都一样：**构建静态文件 → 放到静态托管 → 别人就能看**，全程不涉及数据库。
+
+---
+
 ## 🎛️ 数据与内容定制
 
 ### Vue 3 版
@@ -124,11 +187,23 @@ npm run preview  # 本地预览打包产物
 | `roles` | 首页角色轮播（用于打包等；当前首页改为信息行，可保留） |
 | `desc` | 首页一句话简介 |
 | `email` / `birthday` / `phone` | 联系方式与基本信息 |
+| `aboutIntro` / `aboutText` / `aboutExtra` | 「关于我」文案（开场称呼 / 正文 / 补充段） |
 | `facts` | 「关于我」资料卡（`k` 键 / `v` 值） |
 | `skills` | 技能卡片（图标、名称、标签、掌握度 `0–100`） |
 | `timeline` | 经历节点（时间 / 职位 / 机构 / 描述） |
+| `projects` | 作品卡片（emoji 图标、标题、标签 `tags`、描述） |
 | `videos` | **作品轮播视频**：`title`、`src`（视频路径）、`poster`（封面） |
 | `socials` | 社交链接 |
+
+### ✏️ 编辑模式与简历生成
+
+点击页面右上角的 **✎ 编辑** 进入编辑模式：
+
+- 页面上几乎所有文本都能**就地点击修改**（姓名、简介、基础信息、关于文案、页脚等）。
+- 编辑模式下各区块会出现**增删控件**：角色标题、资料卡、技能、经历、作品、作品视频（可改视频地址/封面/标题）、社交链接均可增删改。
+- 底部出现**提交栏**，点 **「提交 · 生成个人简历」** 会生成一份个人简历，可下载 `.html` 或用浏览器打印/存为 PDF。
+
+> ⚠️ 编辑模式修改的是**浏览器内存**，刷新即恢复默认；若要持久化并发布给他人，请把修改后的内容写回 `vue-app/src/data/site.js` 后重新构建。
 
 ### 作品视频上传
 
@@ -156,6 +231,7 @@ npm run preview  # 本地预览打包产物
 > 须知：静态版使用在线 Google Fonts，离线时回退为系统字体；作品卡片默认链接为 `#`，可替换为真实项目地址。
 
 ---
+
 
 ## 🧱 技术栈
 
